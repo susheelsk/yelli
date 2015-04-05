@@ -1,0 +1,13 @@
+<manifest package="com.tripadvisor.seekbar"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <uses-sdk
+        android:minSdkVersion="11"
+        android:targetSdkVersion="19" />
+
+    <application
+        android:icon="@drawable/ic_launcher">
+
+    </application>
+
+</manifest>

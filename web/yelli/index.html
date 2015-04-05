@@ -1,0 +1,168 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>Yelli</title>
+    <link rel="shortcut icon" href="upload/logo.png">
+    <link rel="stylesheet" href="style.css">
+    <link href="toastr.css" rel="stylesheet"/>
+    <!--[if lt IE 9]><script src="js/html5.js"></script><![endif]-->
+    <script src="js/jquery.js"></script>
+    <script src="js/toastr.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js"></script>
+    <script src="js/library.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/retina.js"></script>
+    <script>
+    $( document ).ready(function() {
+        init();
+    });
+
+    var wsUri = "ws://10.0.0.2:10023/yelli/track";
+    var map;
+    var location;
+    function init() {
+        var trackId = getParameterByName("trackId");
+        console.log("trackId : "+getParameterByName("trackId"));
+        if(trackId=="" || trackId == null) {
+            console.log("appPage visible");
+            document.getElementById("trackPage").style.display = "none";
+            return;
+        } else {
+            console.log("trackPage visible");
+            document.getElementById("appPage").style.display = "none";
+            setMap();
+        }
+
+    }
+
+    function setMap() {
+        var mapProp = {
+            center:new google.maps.LatLng(12.9344016,77.5347782),
+            maxZoom:18,
+            minZoom:15,
+            zoom:17,
+            mapTypeId:google.maps.MapTypeId.ROADMAP
+        };
+        map=new google.maps.Map(document.getElementById("mapDiv"),mapProp);
+        startTracking(getParameterByName("trackId"));
+    }
+
+    function startTracking(trackId) {
+        websocket = new WebSocket(wsUri); 
+        websocket.onopen = function(evt) {
+            console.log("Connected");
+            var pojo = {};
+            pojo.type = "SUBSCRIBE";
+            pojo.trackId = trackId;
+            websocket.send(JSON.stringify(pojo));
+        };
+        websocket.onclose = function(evt) {
+            console.log("Disconnected");
+            showToastMessage("Disconnected from server");
+        }; 
+        websocket.onmessage = function(evt) {
+            var response = JSON.parse(evt.data);
+            console.log("onMessage : "+evt.data);
+            console.log("onMessage : "+response.action);
+            switch(response.type) {
+                case 'LOCATION':
+                    if(response.isSuccess) {
+                        console.log("Latitude : "+response.latitude+" :: Longitude : "+response.longitude);
+                        var latitude = parseFloat(response.latitude);
+                        var longitude = parseFloat(response.longitude);
+                        loc=new google.maps.LatLng(latitude,longitude);
+                        var mapProp = {
+                            center:new google.maps.LatLng(latitude,longitude),
+                            maxZoom:18,
+                            minZoom:15,
+                            zoom:17,
+                            mapTypeId:google.maps.MapTypeId.ROADMAP
+                        };
+                        map=new google.maps.Map(document.getElementById("mapDiv"),mapProp);
+                        var marker=new google.maps.Marker({
+                            position:loc,
+                            animation:google.maps.Animation.BOUNCE
+                            });
+                        marker.setMap(map);
+                        showToastMessage("Tracker found");
+                    }else {
+                        console.log("LOCATION not found");
+                        showToastMessage("Tracker not found");
+                        websocket.close();
+                    }
+                    break;
+            }
+        }; 
+        websocket.onerror = function(evt) {
+           console.log("Some error"); 
+           showToastMessage("Disconnected from server");
+        };
+
+
+    }
+
+    function getParameterByName(name) {
+        name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+        var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+            results = regex.exec(location.search);
+        return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+    }
+
+    function showToastMessage(toastMessage) {
+        $().toasty({
+            message: toastMessage,
+            autoHide: 3500
+        });
+    }
+    
+    </script>
+</head>
+<body class="no-js">
+    <section class="main">
+        <header>
+            <div class="wrap">
+                <div class="myGallery">
+                    <NOBR>
+                        <img class="headerimg" src="upload/logo.png" height="80" width="80px">
+                        <span class="headerspan" >Yelli</span>
+                    </NOBR>
+                    <span class="subtitle">
+                        <p>
+                        <img height="0" width="100px">
+                            Share location. Realtime.
+                        </p>
+                    </span>
+                </div>​​​​​​​​​​​​​​​​​​​​​​​​​​​​​
+                
+            </div><!-- wrap -->
+        </header>
+        <div id="appPage">
+            <section class="promo">
+                <div class="wrap">
+                    <div class="promo-text">
+                        <div class="promo-title">Yelli</div>
+                        <p>Yelli is a mobile app that lets you share your location in realtime. It lets you share your location with your friends for a chosen period of time. During this interval, with a single link, they will be able to keep track of you in realtime.</p><br/>
+                            <ul>
+                                <li>Open the app</li>
+                                <li>Choose the time period till you want to be tracked</li>
+                                <li>Click on the Track button</li>
+                                <li>Share the link to share your location</li>
+                            </ul>
+                        <p><a class="promo-button" href="https://play.google.com/store/apps/details?id=com.yelli">Download</a> &nbsp; 
+                    </div>
+                    <img src="upload/yelli_image.gif" width="333" height="551" alt="">
+                </div>
+            </section>
+        </div>
+        <div id="trackPage">
+            <section class="map">
+                <div id="mapDiv">
+                </div>
+            </section>
+        </div>
+    </section><!-- main -->
+</body>
+</html>
