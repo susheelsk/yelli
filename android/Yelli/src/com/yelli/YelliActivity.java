@@ -149,6 +149,7 @@ public class YelliActivity extends ActionBarActivity implements
 				e.printStackTrace();
 			}
 			if (locationMode != 3) {
+				Toast.makeText(this, "Please enable GPS", Toast.LENGTH_SHORT).show();
 				startActivity(new Intent(
 						Settings.ACTION_LOCATION_SOURCE_SETTINGS));
 				return;
