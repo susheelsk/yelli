@@ -1,5 +1,6 @@
 package com.yelli.properties;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -7,7 +8,6 @@ import java.util.Random;
 import javax.websocket.Session;
 
 import com.google.gson.Gson;
-import com.yelli.MessageType;
 import com.yelli.responsepojo.LocationPojo;
 
 public class Room {
@@ -31,12 +31,13 @@ public class Room {
 		this.createdTimestamp = System.currentTimeMillis();
 	}
 	
-	public void sendMessage(String latitude,String longitude) {
+	public void sendMessage(String latitude,String longitude) throws IOException {
 		this.latitude = latitude;
 		this.longitude = longitude;
 		this.lastUpdatedTimestamp = System.currentTimeMillis();
 		LocationPojo locationPojo = new LocationPojo();
 		locationPojo.type = MessageType.LOCATION;
+		locationPojo.isSuccess = true;
 		locationPojo.latitude = this.latitude;
 		locationPojo.longitude = this.longitude;
 		locationPojo.timestamp = this.lastUpdatedTimestamp;

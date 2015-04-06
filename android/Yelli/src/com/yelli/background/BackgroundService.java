@@ -1,7 +1,14 @@
 package com.yelli.background;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
@@ -34,6 +41,7 @@ public class BackgroundService extends NonStopIntentService implements
 	private long lastPingResponse;
 	private Intent intent;
 	private long timelimit;
+	public static boolean isIntentRunning = false;
 
 	public BackgroundService(String name) {
 		super(name);
@@ -53,6 +61,7 @@ public class BackgroundService extends NonStopIntentService implements
 		}
 		initWebSocketClient();
 		client.connect();
+		isIntentRunning = true;
 	}
 
 	private void initWebSocketClient() {
@@ -62,93 +71,92 @@ public class BackgroundService extends NonStopIntentService implements
 		if (!Utils.isCurrentlyBeingTracked(currentlyRunningTrackTimelimit)) {
 			stopSelf();
 		}
-		client = new WebSocketClient(URI.create(Utils.yelliServerPath),
-				new Listener() {
+		client = new WebSocketClient(URI.create(Utils.yelliServerPath
+				+ "/track"), new Listener() {
 
-					@Override
-					public void onMessage(byte[] data) {
-						Log.d(TAG, "onMessage and data in byte[]");
-						String response = new String(data);
-						onMessage(response);
-					}
+			@Override
+			public void onMessage(byte[] data) {
+				Log.d(TAG, "onMessage and data in byte[]");
+				String response = new String(data);
+				onMessage(response);
+			}
 
-					@Override
-					public void onMessage(String message) {
-						Log.d(TAG, "Message : " + message);
-						RequestPojo requestPojo = new Gson().fromJson(message,
-								RequestPojo.class);
-						switch (requestPojo.type) {
-						case CREATE:
-							if (requestPojo.isSuccess) {
-								CreatePojo createPojo = new Gson().fromJson(
-										message, CreatePojo.class);
-								String trackId = createPojo.trackId;
-								getSharedPreferences(Utils.SHARED_PREF_NAME,
-										Context.MODE_PRIVATE)
-										.edit()
-										.putString(Utils.TRACKING_ID_PREF,
-												trackId).commit();
-								if (isActivityLaunch) {
-									sendTrackingIdToActivity(trackId);
-								}
-								handler.postDelayed(locationRunnable, 100);
-							} else {
-								Log.d(TAG,
-										"Something went wrong trying to create a room");
-								sendErrorToActivity("Something went wrong.");
-							}
-							break;
-						case LOCATION:
-							// do nothing
-							break;
-						case SUBSCRIBE:
-							// not gonna happen bro
-							break;
-						case UPDATE:
-							// ain't gonna happen bro
-							break;
-						case PING:
-							lastPingResponse = System.currentTimeMillis();
-							break;
-						default:
-							// chance illa macha
-							break;
-
+			@Override
+			public void onMessage(String message) {
+				Log.d(TAG, "Message : " + message);
+				RequestPojo requestPojo = new Gson().fromJson(message,
+						RequestPojo.class);
+				switch (requestPojo.type) {
+				case CREATE:
+					if (requestPojo.isSuccess) {
+						CreatePojo createPojo = new Gson().fromJson(message,
+								CreatePojo.class);
+						String trackId = createPojo.trackId;
+						getSharedPreferences(Utils.SHARED_PREF_NAME,
+								Context.MODE_PRIVATE).edit()
+								.putString(Utils.TRACKING_ID_PREF, trackId)
+								.commit();
+						if (isActivityLaunch) {
+							sendTrackingIdToActivity(trackId);
 						}
+						handler.postDelayed(locationRunnable, 100);
+					} else {
+						Log.d(TAG,
+								"Something went wrong trying to create a room");
+						sendErrorToActivity("Something went wrong.");
 					}
+					break;
+				case LOCATION:
+					// do nothing
+					break;
+				case SUBSCRIBE:
+					// not gonna happen bro
+					break;
+				case UPDATE:
+					// ain't gonna happen bro
+					break;
+				case PING:
+					lastPingResponse = System.currentTimeMillis();
+					break;
+				default:
+					// chance illa macha
+					break;
 
-					@Override
-					public void onError(Exception error) {
-						Log.d(TAG, "onError() : " + error.getMessage());
-						isConnected = false;
-						handler.postDelayed(reconnectRunnable, 60000);
-						sendErrorToActivity("Unable to connect to server");
-					}
+				}
+			}
 
-					@Override
-					public void onDisconnect(int code, String reason) {
-						Log.d(TAG, "onDisconnect() : " + reason);
-						isConnected = false;
-						handler.postDelayed(reconnectRunnable, 60000);
-						sendErrorToActivity("Unable to connect to server");
-					}
+			@Override
+			public void onError(Exception error) {
+				Log.d(TAG, "onError() : " + error.getMessage());
+				isConnected = false;
+				handler.postDelayed(reconnectRunnable, 60000);
+				sendErrorToActivity("Unable to connect to server");
+			}
 
-					@Override
-					public void onConnect() {
-						isConnected = true;
-						handler.postDelayed(pingRunable, pingInterval);
-						lastPingResponse = System.currentTimeMillis();
-						long currentlyRunningTrackTimelimit = getSharedPreferences(
-								Utils.SHARED_PREF_NAME, Context.MODE_PRIVATE)
-								.getLong(Utils.TIME_LIMIT_PREF, 0);
-						if (Utils
-								.isCurrentlyBeingTracked(currentlyRunningTrackTimelimit)) {
-							handler.postDelayed(locationRunnable, 100);
-						} else {
-							createRoom();
-						}
-					}
-				}, null);
+			@Override
+			public void onDisconnect(int code, String reason) {
+				Log.d(TAG, "onDisconnect() : " + reason);
+				isConnected = false;
+				handler.postDelayed(reconnectRunnable, 60000);
+				sendErrorToActivity("Unable to connect to server");
+			}
+
+			@Override
+			public void onConnect() {
+				isConnected = true;
+				handler.postDelayed(pingRunable, pingInterval);
+				lastPingResponse = System.currentTimeMillis();
+				long currentlyRunningTrackTimelimit = getSharedPreferences(
+						Utils.SHARED_PREF_NAME, Context.MODE_PRIVATE).getLong(
+						Utils.TIME_LIMIT_PREF, 0);
+				if (Utils
+						.isCurrentlyBeingTracked(currentlyRunningTrackTimelimit)) {
+					handler.postDelayed(locationRunnable, 100);
+				} else {
+					createRoom();
+				}
+			}
+		}, null);
 	}
 
 	private void createRoom() {
@@ -171,6 +179,8 @@ public class BackgroundService extends NonStopIntentService implements
 				Utils.SHARED_PREF_NAME, Context.MODE_PRIVATE).getLong(
 				Utils.TIME_LIMIT_PREF, 0);
 		if (!Utils.isCurrentlyBeingTracked(currentlyRunningTrackTimelimit)) {
+			Log.d(TAG,
+					"Killing Process because tracker not currently running. Done tracking");
 			stopSelf();
 		}
 		UpdatePojo pojo = new UpdatePojo();
@@ -179,7 +189,13 @@ public class BackgroundService extends NonStopIntentService implements
 		pojo.latitude = latitude;
 		pojo.longitude = longitude;
 		String message = new Gson().toJson(pojo);
-		client.send(message);
+		if (isConnected) {
+			client.send(message);
+		} else {
+			List<NameValuePair> params = new ArrayList<NameValuePair>();
+			params.add(new BasicNameValuePair("data", message));
+			Utils.postData(Utils.yelliHttpServerPath + "/update", params);
+		}
 	}
 
 	final Handler handler = new Handler();
@@ -223,13 +239,35 @@ public class BackgroundService extends NonStopIntentService implements
 		@Override
 		public void run() {
 			Log.d(TAG, "In LocationRunnable");
-			locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+			// locationManager = (LocationManager)
+			// getSystemService(LOCATION_SERVICE);
+			//
+			// locationManager.requestLocationUpdates(
+			// LocationManager.GPS_PROVIDER, 5000, 20,
+			// BackgroundService.this);
+			scheduleAlarm();
 
-			locationManager.requestLocationUpdates(
-					LocationManager.GPS_PROVIDER, 5000, 20,
-					BackgroundService.this);
 		}
 	};
+
+	public void scheduleAlarm() {
+		// Construct an intent that will execute the AlarmReceiver
+		Intent intent = new Intent(getApplicationContext(),
+				MyAlarmReceiver.class);
+		// Create a PendingIntent to be triggered when the alarm goes off
+		final PendingIntent pIntent = PendingIntent.getBroadcast(this,
+				MyAlarmReceiver.REQUEST_CODE, intent,
+				PendingIntent.FLAG_UPDATE_CURRENT);
+		// Setup periodic alarm every 30 seconds
+		long firstMillis = System.currentTimeMillis(); // first run of alarm is
+														// immediate
+		int intervalMillis = 30000; // 30 seconds
+		AlarmManager alarm = (AlarmManager) this
+				.getSystemService(Context.ALARM_SERVICE);
+		alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, firstMillis,
+				intervalMillis, pIntent);
+		stopSelf();
+	}
 
 	protected void sendTrackingIdToActivity(String trackId) {
 		getSharedPreferences(Utils.SHARED_PREF_NAME, Context.MODE_PRIVATE)
@@ -251,6 +289,12 @@ public class BackgroundService extends NonStopIntentService implements
 		Bundle bundle = new Bundle();
 		bundle.putString("error", errorMessage);
 		receiver.send(23, bundle);
+	}
+
+	@Override
+	public void onDestroy() {
+		isIntentRunning = false;
+		super.onDestroy();
 	}
 
 	@Override

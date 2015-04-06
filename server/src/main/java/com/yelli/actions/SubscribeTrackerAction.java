@@ -1,11 +1,12 @@
 package com.yelli.actions;
 
+import java.io.IOException;
 import java.util.logging.Logger;
 
 import javax.websocket.Session;
 
 import com.google.gson.Gson;
-import com.yelli.MessageType;
+import com.yelli.properties.MessageType;
 import com.yelli.properties.Room;
 import com.yelli.properties.YelliData;
 import com.yelli.requestpojo.SubscribePojo;
@@ -32,7 +33,7 @@ public class SubscribeTrackerAction implements OnAction {
 		}
 	}
 
-	public void sendResponse(Room room, Session session) {
+	public void sendResponse(Room room, Session session) throws IOException {
 		LocationPojo pojo = new LocationPojo();
 		pojo.type = MessageType.LOCATION;
 		pojo.isSuccess = true;
@@ -44,7 +45,7 @@ public class SubscribeTrackerAction implements OnAction {
 		session.getAsyncRemote().sendText(message);
 	}
 
-	public void sendErrorResponse(Session session) {
+	public void sendErrorResponse(Session session) throws IOException {
 		LocationPojo pojo = new LocationPojo();
 		pojo.type = MessageType.LOCATION;
 		pojo.isSuccess = false;

@@ -1,13 +1,14 @@
 package com.yelli.actions;
 
+import java.io.IOException;
 import java.util.Timer;
 import java.util.logging.Logger;
 
 import javax.websocket.Session;
 
 import com.google.gson.Gson;
-import com.yelli.MessageType;
 import com.yelli.backgroundtasks.RemoveRoomTask;
+import com.yelli.properties.MessageType;
 import com.yelli.properties.Room;
 import com.yelli.properties.YelliData;
 import com.yelli.requestpojo.CreatePojo;
@@ -43,7 +44,7 @@ public class CreateTrackerAction implements OnAction {
 		}
 	}
 
-	private void sendResponse(String trackId, Session session) {
+	private void sendResponse(String trackId, Session session) throws IOException {
 		com.yelli.responsepojo.CreatePojo pojo = new com.yelli.responsepojo.CreatePojo();
 		pojo.type = MessageType.CREATE;
 		pojo.trackId = trackId;
@@ -53,7 +54,7 @@ public class CreateTrackerAction implements OnAction {
 		session.getAsyncRemote().sendText(message);
 	}
 
-	public void sendErrorResponse(Session session) {
+	public void sendErrorResponse(Session session) throws IOException {
 		com.yelli.responsepojo.CreatePojo pojo = new com.yelli.responsepojo.CreatePojo();
 		pojo.type = MessageType.CREATE;
 		pojo.isSuccess = false;

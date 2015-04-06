@@ -18,7 +18,7 @@ import com.yelli.actions.UpdateTrackerAction;
 import com.yelli.requestpojo.RequestPojo;
 
 @ServerEndpoint(value = "/track")
-public class YelliWebSocketApi {
+public class YelliWebsocketApi {
 
 	private Logger logger = Logger.getLogger(this.getClass().getSimpleName());
 
