@@ -19,6 +19,10 @@ Yelli stack consists of three major parts viz. websocket server, android-client,
 > java -cp Yelli-0.0.1-SNAPSHOT-jar-with-dependencies.jar com.yelli.App
 
     
+![yelli](https://user-images.githubusercontent.com/1933531/173640415-efbcc186-533f-4639-b64e-f254bda77502.png)
+
+![yelli2](https://user-images.githubusercontent.com/1933531/173640623-7ebcf253-e0eb-4707-8acb-ea4b8915da81.png)
+
     
     			
 		
